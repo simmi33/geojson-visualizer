@@ -19,7 +19,7 @@
         align-items: stretch;
       }
 
-      #side-panel {
+      #table {
         flex-basis: 500px;
         overflow-y: scroll;
         background: white;
@@ -62,7 +62,7 @@
       }
 
       @media (max-width: 1024px) {
-        #side-panel {
+        #table {
           display: none;
         }
       }
@@ -70,9 +70,9 @@
   </head>
   <body>
     <main id="container">
-      <div id="side-panel">
+      <div id="table">
         <h2>Custom GeoJSON Data</h2>
-        <button>Sort by Value</button>
+        <button onclick="sortTable()">Sort by Value</button>
         <table>
           <tr>
             <th>id</th>
@@ -92,12 +92,12 @@
       const map = new mapboxgl.Map({
         container: "map", // ID of the div where the map will be rendered
         style: "mapbox://styles/mapbox/light-v10", // Different map style
-        center: [0, 0], // Center of the map
         zoom: 2, // Initial zoom level
+        center: [0, 0], // Center of the map
       });
 
       // Load GeoJSON data and add layers
-      map.on("load", async function () {
+      async function geojsonFetch() {
         try {
           let response, customData1, customData2;
 
@@ -109,60 +109,55 @@
           customData2 = await response.json();
 
           // Add custom data layers
-          map.addSource("custom1", {
-            type: "geojson",
-            data: customData1,
-          });
+          map.on("load", () => {
+            map.addSource("custom1", {
+              type: "geojson",
+              data: customData1,
+            });
 
-          map.addLayer({
-            id: "custom1-layer",
-            type: "circle",
-            source: "custom1",
-            paint: {
-              "circle-radius": 8,
-              "circle-stroke-width": 2,
-              "circle-color": "green",
-              "circle-stroke-color": "white",
-            },
-          });
+            map.addLayer({
+              id: "custom1-layer",
+              type: "circle",
+              source: "custom1",
+              paint: {
+                "circle-radius": 8,
+                "circle-stroke-width": 2,
+                "circle-color": "green",
+                "circle-stroke-color": "white",
+              },
+            });
 
-          map.addSource("custom2", {
-            type: "geojson",
-            data: customData2,
-          });
+            map.addSource("custom2", {
+              type: "geojson",
+              data: customData2,
+            });
 
-          map.addLayer({
-            id: "custom2-layer",
-            type: "fill",
-            source: "custom2",
-            paint: {
-              "fill-color": "#ff6347",
-              "fill-opacity": 0.5,
-            },
+            map.addLayer({
+              id: "custom2-layer",
+              type: "fill",
+              source: "custom2",
+              paint: {
+                "fill-color": "#ff6347",
+                "fill-opacity": 0.5,
+              },
+            });
           });
 
           // Generate the table with custom data
-          generateTable(customData1);
+          let table = document.getElementsByTagName("table")[0];
+          for (let i = 0; i < customData1.features.length; i++) {
+            let row = table.insertRow(-1);
+            let cell1 = row.insertCell(0); // id
+            let cell2 = row.insertCell(1); // value
+            let cell3 = row.insertCell(2); // timestamp
+
+            // Add properties to the cells
+            cell1.innerHTML = customData1.features[i].properties.id;
+            cell2.innerHTML = customData1.features[i].properties.value;
+            cell3.innerHTML = new Date(customData1.features[i].properties.time).toLocaleDateString("en-US");
+          }
         } catch (error) {
           console.error("Error loading GeoJSON data:", error);
-        }
-      });
-
-      // Function to generate the table
-      function generateTable(data) {
-        let table = document.getElementsByTagName("table")[0];
-
-        // Loop through the data and add rows to the table
-        for (let i = 0; i < data.features.length; i++) {
-          let row = table.insertRow(-1);
-          let cell1 = row.insertCell(0); // id
-          let cell2 = row.insertCell(1); // value
-          let cell3 = row.insertCell(2); // timestamp
-
-          // Add properties to the cells
-          cell1.innerHTML = data.features[i].properties.id;
-          cell2.innerHTML = data.features[i].properties.value;
-          cell3.innerHTML = new Date(data.features[i].properties.time).toLocaleDateString("en-US");
         }
       }
 
@@ -200,9 +195,8 @@
         }
       }
 
-      // Add event listener to the sort button
-      let btn = document.getElementsByTagName("button")[0];
-      btn.addEventListener("click", sortTable);
+      // Fetch data and initialize the map
+      geojsonFetch();
     </script>
   </body>
 </html>
