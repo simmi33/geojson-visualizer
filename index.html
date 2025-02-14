@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <title>Custom GeoJSON Visualizer</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      #container {
+        display: flex;
+        height: 100vh;
+        flex-direction: row;
+        align-items: stretch;
+      }
+
+      #side-panel {
+        flex-basis: 500px;
+        overflow-y: scroll;
+        background: white;
+        z-index: 1;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      }
+
+      #map {
+        flex-grow: 1;
+      }
+
+      button {
+        margin-bottom: 10px;
+        padding: 10px;
+        background: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #0056b3;
+      }
+
+      table {
+        border-collapse: collapse;
+        border-spacing: 0;
+        width: 100%;
+        border: 1px solid #ddd;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 16px;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+
+      @media (max-width: 1024px) {
+        #side-panel {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="container">
+      <div id="side-panel">
+        <h2>Custom GeoJSON Data</h2>
+        <button>Sort by Value</button>
+        <table>
+          <tr>
+            <th>id</th>
+            <th>value</th>
+            <th>timestamp</th>
+          </tr>
+        </table>
+      </div>
+      <div id="map"></div>
+    </main>
+
+    <script>
+      // Set your Mapbox access token
+      mapboxgl.accessToken = "pk.eyJ1Ijoic2ltbWkzMyIsImEiOiJjbTZ3cXMwOTEwZHkxMm1vZzNuYThqZGFpIn0.gEHzvjtvDcrXY42WVUDjTQ";
+
+      // Initialize the map
+      const map = new mapboxgl.Map({
+        container: "map", // ID of the div where the map will be rendered
+        style: "mapbox://styles/mapbox/light-v10", // Different map style
+        center: [0, 0], // Center of the map
+        zoom: 2, // Initial zoom level
+      });
+
+      // Load GeoJSON data and add layers
+      map.on("load", async function () {
+        try {
+          let response, customData1, customData2;
+
+          // Fetch custom GeoJSON data
+          response = await fetch("assets/custom1.geojson");
+          customData1 = await response.json();
+
+          response = await fetch("assets/custom2.geojson");
+          customData2 = await response.json();
+
+          // Add custom data layers
+          map.addSource("custom1", {
+            type: "geojson",
+            data: customData1,
+          });
+
+          map.addLayer({
+            id: "custom1-layer",
+            type: "circle",
+            source: "custom1",
+            paint: {
+              "circle-radius": 8,
+              "circle-stroke-width": 2,
+              "circle-color": "green",
+              "circle-stroke-color": "white",
+            },
+          });
+
+          map.addSource("custom2", {
+            type: "geojson",
+            data: customData2,
+          });
+
+          map.addLayer({
+            id: "custom2-layer",
+            type: "fill",
+            source: "custom2",
+            paint: {
+              "fill-color": "#ff6347",
+              "fill-opacity": 0.5,
+            },
+          });
+
+          // Generate the table with custom data
+          generateTable(customData1);
+        } catch (error) {
+          console.error("Error loading GeoJSON data:", error);
+        }
+      });
+
+      // Function to generate the table
+      function generateTable(data) {
+        let table = document.getElementsByTagName("table")[0];
+
+        // Loop through the data and add rows to the table
+        for (let i = 0; i < data.features.length; i++) {
+          let row = table.insertRow(-1);
+          let cell1 = row.insertCell(0); // id
+          let cell2 = row.insertCell(1); // value
+          let cell3 = row.insertCell(2); // timestamp
+
+          // Add properties to the cells
+          cell1.innerHTML = data.features[i].properties.id;
+          cell2.innerHTML = data.features[i].properties.value;
+          cell3.innerHTML = new Date(data.features[i].properties.time).toLocaleDateString("en-US");
+        }
+      }
+
+      // Function to sort the table
+      function sortTable() {
+        let table, rows, switching, i, x, y, shouldSwitch;
+        table = document.getElementsByTagName("table")[0];
+        switching = true;
+
+        // Loop until no switching is needed
+        while (switching) {
+          switching = false;
+          rows = table.rows;
+
+          // Loop through all table rows (except headers)
+          for (i = 1; i < rows.length - 1; i++) {
+            shouldSwitch = false;
+
+            // Get the values from the current and next row
+            x = parseFloat(rows[i].getElementsByTagName("td")[1].innerHTML);
+            y = parseFloat(rows[i + 1].getElementsByTagName("td")[1].innerHTML);
+
+            // Check if the rows should switch places
+            if (x < y) {
+              shouldSwitch = true;
+              break;
+            }
+          }
+
+          // Switch rows if needed
+          if (shouldSwitch) {
+            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+            switching = true;
+          }
+        }
+      }
+
+      // Add event listener to the sort button
+      let btn = document.getElementsByTagName("button")[0];
+      btn.addEventListener("click", sortTable);
+    </script>
+  </body>
+</html>
